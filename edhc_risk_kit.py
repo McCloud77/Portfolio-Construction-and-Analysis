@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import math
+from scipy.stats import norm
 
 def get_ffme_returns():
     """
@@ -215,8 +216,6 @@ def cvar_historic(r, level=5):
     else:
         raise TypeError("Expected r to be a Series or DataFrame")
 
-
-from scipy.stats import norm
 def var_gaussian(r, level=5, modified=False):
     """
     Returns the Parametric Gauusian VaR of a Series or DataFrame
@@ -489,7 +488,26 @@ def gbm(n_years = 10, n_scenarios=1000, mu=0.07, sigma=0.15, steps_per_year=12, 
     ret_val = s_0*pd.DataFrame(rets_plus_1).cumprod() if prices else rets_plus_1-1
     return ret_val
 
+def discount_simple(t, r):
+    """
+    Compute the price of a pure discount bond that pays a dollar at time t where t is in years and r is the annual interest rate
+    """
+    return (1+r)**(-t)
 
+def pv_simple(l, r):
+    """
+    Compute the present value of a list of liabilities given by the time (as an index) and amounts
+    """
+    dates = l.index
+    discounts = discount_simple(dates, r)
+    return (discounts*l).sum()
+
+def funding_ratio_simple(assets, liabilities, r):
+    """
+    Computes the funding ratio of a series of liabilities, based on an interest rate and current value of assets
+    """
+    return assets/pv_simple(liabilities, r)
+ 
 def discount(t, r):
     """
     Compute the price of a pure discount bond that pays a dollar at time period t
@@ -515,7 +533,7 @@ def funding_ratio(assets, liabilities, r):
     """
     Computes the funding ratio of a series of liabilities, based on an interest rate and current value of assets
     """
-    return pv(assets, r)/pv(liabilities, r)
+    return np.float(pv(assets, r)/pv(liabilities, r))
 
 def inst_to_ann(r):
     """
